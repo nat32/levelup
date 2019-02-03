@@ -1,0 +1,5 @@
+main/java/com/springapp/config/*
+main/resources/*
+main/java/com/springapp/error/*
+main/webapp/ui/static/*
+main/webapp/ui/images/*
