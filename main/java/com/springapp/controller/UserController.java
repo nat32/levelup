@@ -72,16 +72,6 @@ public class UserController {
         return "connectError";
     }
 
-    /**
-     * Fonction qui affiche le formulaire de connexion pour l'utilisateur
-     * @param user
-     * @return
-     */
-    @RequestMapping(value = "/connect", method = RequestMethod.GET)
-    public String connectForm(@ModelAttribute ("user") User user){
-
-        return "connectUser";
-    }
 
 
     /**
@@ -138,109 +128,80 @@ public class UserController {
         return userService.createUser(user);
     }
 
-    /**
-     * Fonction qui recois en paramètre les infos renseignes par l'utilisateur lord de la connexion
-     * Pour ensuite le rediriger soit vers son profil soit vers la page d'erreur
-     * @param user
-     * @return
-     */
-    @RequestMapping(value = "/connectUser", method = RequestMethod.POST)
-    public RedirectView connect(@ModelAttribute("user") User user, ModelMap model) {
+    @RequestMapping(value = "/connectUser", method = RequestMethod.GET)
+    public RedirectView connect(ModelMap model, HttpServletRequest request) {
 
-        String form_name =  user.getUsername();
+        Principal principal = request.getUserPrincipal();
 
-        boolean user_exists = userService.ifUserNameExists(form_name);
+        String username = principal.getName();
+
+        int user_id = userService.getUserIdByName(username);
+
+        User user = userService.getUserWithlevel(user_id);
 
         RedirectView rv = new RedirectView();
 
         rv.setContextRelative(true);
 
-        if(!user_exists){
+        Integer old_level_id = user.getLevel_id();
 
-            rv.setUrl("/connectError");
-            return rv;
-
-        }else{
-
-            User user_bd = userService.getUserByName(form_name);
-
-            String password_bd = user_bd.getPassword();
-
-            String form_password =  user.getPassword();
-
-            Integer id  = user_bd.getId();
-
-            if(password_bd.equals(form_password)){
-
-                Integer old_level_id = user_bd.getLevel_id();
-
-                Integer points =   user_bd.getPoints();
-
-                Integer level_number = user_bd.getLevel_number();
+        Integer points =   user.getPoints();
 
 
-                Calendar cal = Calendar.getInstance();
-                SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd");
-                String dateStringNow = sdf.format(cal.getTime());
+        Integer level_number = user.getLevel_number();
 
-                String last_connection = user_bd.getLast_connection();
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-dd");
+        String dateStringNow = sdf.format(cal.getTime());
 
-                if(!last_connection.equals(dateStringNow)){
+        String last_connection = user.getLast_connection();
 
-                   int penalty_points = dailyService.checkDailiesAndGetPenalty(id);
+        if(!last_connection.equals(dateStringNow)){
 
-
-                   if(penalty_points != 0){
-
-                      boolean updated = userService.subtractPointsAndUpdateLevel(id, penalty_points);
-
-                      if(updated){
-
-                          User user_updated = userService.getUserWithlevel(id);
-
-                          points = user_updated.getPoints();
-
-                          level_number =  user_updated.getLevel_number();
+            int penalty_points = dailyService.checkDailiesAndGetPenalty(user_id);
 
 
-                          if(old_level_id != user_updated.getLevel_id())
-                          {
+            if(penalty_points != 0){
 
-                              model.addAttribute("message",  1);
+                boolean updated = userService.subtractPointsAndUpdateLevel(user_id, penalty_points);
 
-                          }else{
-                              model.addAttribute("message",  2);
+                if(updated){
 
-                          }
+                    User user_updated = userService.getUserWithlevel(user_id);
 
-                      }
-                   }
+                    points = user_updated.getPoints();
+
+                    level_number =  user_updated.getLevel_number();
+
+
+                    if(old_level_id.equals(user_updated.getLevel_id()))
+                    {
+
+                        model.addAttribute("message",  1);
+
+                    }else{
+                        model.addAttribute("message",  2);
+
+                    }
+
                 }
-
-                model.addAttribute("level",  level_number);
-
-                model.addAttribute("points",  points);
-
-                userService.updateUserLastConnection(id, dateStringNow);
-
-                model.addAttribute("id",  id);
-
-                rv.setAttributesMap(model);
-                rv.setUrl("/showProfil/{id}");
-                return rv;
-
-
-            }else{
-
-                rv.setAttributesMap(model);
-                rv.setUrl("/connectError");
-                return rv;
-
             }
-
         }
 
+        model.addAttribute("level",  level_number);
+
+        model.addAttribute("points",  points);
+
+        userService.updateUserLastConnection(user_id, dateStringNow);
+
+        model.addAttribute("id",  user_id);
+
+        rv.setAttributesMap(model);
+        rv.setUrl("/showProfil/{id}");
+        return rv;
+
     }
+
 
 
     /**

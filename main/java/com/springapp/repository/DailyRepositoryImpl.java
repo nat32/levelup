@@ -104,7 +104,7 @@ public class DailyRepositoryImpl implements DailyRepository {
     public int countDailiesNotDone(Integer user_id) {
 
 
-        String sql = "SELECT count(*) FROM daily D INNER JOIN user U on D.user_id = U.id WHERE D.done = 0 AND U.id = ? ";
+        String sql = "SELECT count(*) FROM daily D INNER JOIN users U on D.user_id = U.id WHERE D.done = 0 AND U.id = ? ";
 
         Integer count = jdbcTemplate.queryForObject(sql, new Object[] { user_id }, Integer.class);
 
